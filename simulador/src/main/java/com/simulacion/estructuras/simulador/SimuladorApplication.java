@@ -8,8 +8,11 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Stack;
 @SpringBootApplication
 @RestController
 public class SimuladorApplication implements WebMvcConfigurer {
@@ -159,204 +162,461 @@ public class SimuladorApplication implements WebMvcConfigurer {
             return ultimaOperacionExplicacion;
         }
     }
-    static class NodoArbolAVL<T extends Comparable<T>> extends Nodo<T> {
-        NodoArbolAVL<T> izquierdo;
-        NodoArbolAVL<T> derecho;
-        int altura;
-        public NodoArbolAVL(T dato) {
-            super(dato);
-            this.izquierdo = null;
-            this.derecho = null;
-            this.altura = 1;
-        }
-        public NodoArbolAVL<T> getIzquierdo() {
-            return izquierdo;
-        }
-        public void setIzquierdo(NodoArbolAVL<T> izquierdo) {
-            this.izquierdo = izquierdo;
-        }
-        public NodoArbolAVL<T> getDerecho() {
-            return derecho;
-        }
-        public void setDerecho(NodoArbolAVL<T> derecho) {
-            this.derecho = derecho;
-        }
-        public int getAltura() {
+    
+
+    public class NodeAVL<E extends Comparable<E>> {
+    private E data;
+    private NodeAVL<E> left;
+    private NodeAVL<E> right;
+     int altura;
+    private int fe; // Factor de equilibrio
+    public NodeAVL(E data) {
+        this.data = data;
+        this.left = null;
+        this.right = null;
+        this.fe = 0;
+        this.altura = 1;
+    }
+    public E getData() {
+        return data;
+    }
+    public void setData(E data) {
+        this.data = data;
+    }
+    public int getAltura() {
             return altura;
         }
-        public void setAltura(int altura) {
+     public void setAltura(int altura) {
             this.altura = altura;
         }
-        @Override
-        public String getRepresentacionGrafica() {
-            return String.valueOf(dato) + "(H:" + altura + ")";
-        }
-        @Override
-        public String getExplicacion() {
-            return "Nodo con valor: " + dato + ", Altura: " + altura;
-        }
+    public NodeAVL<E> getLeft() {
+        return left;
     }
-    static class ArbolAVL<T extends Comparable<T>> {
-        private NodoArbolAVL<T> raiz;
-        private String ultimaOperacionExplicacion = "Ninguna operación realizada.";
-        public ArbolAVL() {
-            this.raiz = null;
+    public void setLeft(NodeAVL<E> left) {
+        this.left = left;
+    }
+    public NodeAVL<E> getRight() {
+        return right;
+    }
+    public void setRight(NodeAVL<E> right) {
+        this.right = right;
+    }
+    public int getFe() {
+        return fe;
+    }
+    public void setFe(int fe) {
+        this.fe = fe;
+    }
+    public String getRepresentacionGrafica() {
+            return String.valueOf(data) + "(H:" + altura + ")";
         }
-        private int altura(NodoArbolAVL<T> nodo) {
-            return (nodo == null) ? 0 : nodo.getAltura();
+    public String getExplicacion() {
+            return "Nodo con valor: " + data + ", Altura: " + altura;
         }
-        private int getBalanceFactor(NodoArbolAVL<T> nodo) {
-            return (nodo == null) ? 0 : altura(nodo.getIzquierdo()) - altura(nodo.getDerecho());
-        }
-        private void actualizarAltura(NodoArbolAVL<T> nodo) {
-            if (nodo != null) {
-                nodo.setAltura(1 + Math.max(altura(nodo.getIzquierdo()), altura(nodo.getDerecho())));
-            }
-        }
-        private NodoArbolAVL<T> rotarDerecha(NodoArbolAVL<T> y) {
-            NodoArbolAVL<T> x = y.getIzquierdo();
-            NodoArbolAVL<T> T2 = x.getDerecho();
-            x.setDerecho(y);
-            y.setIzquierdo(T2);
-            actualizarAltura(y);
-            actualizarAltura(x);
-            return x;
-        }
-        private NodoArbolAVL<T> rotarIzquierda(NodoArbolAVL<T> x) {
-            NodoArbolAVL<T> y = x.getDerecho();
-            NodoArbolAVL<T> T2 = y.getIzquierdo();
-            y.setIzquierdo(x);
-            x.setDerecho(T2);
-            actualizarAltura(x);
-            actualizarAltura(y);
-            return y;
-        }
-        public void insertar(T dato) {
-            raiz = insertarRec(raiz, dato);
-            ultimaOperacionExplicacion = "Insertado el dato: " + dato;
-        }
-        private NodoArbolAVL<T> insertarRec(NodoArbolAVL<T> nodo, T dato) {
-            if (nodo == null) {
-                return new NodoArbolAVL<>(dato);
-            }
-            int comparacion = dato.compareTo(nodo.getDato());
-            if (comparacion < 0) {
-                nodo.setIzquierdo(insertarRec(nodo.getIzquierdo(), dato));
-            } else if (comparacion > 0) {
-                nodo.setDerecho(insertarRec(nodo.getDerecho(), dato));
-            } else {
-                return nodo; 
-            }
-            actualizarAltura(nodo);
-            int balance = getBalanceFactor(nodo);
-            if (balance > 1 && dato.compareTo(nodo.getIzquierdo().getDato()) < 0) return rotarDerecha(nodo);
-            if (balance < -1 && dato.compareTo(nodo.getDerecho().getDato()) > 0) return rotarIzquierda(nodo);
-            if (balance > 1 && dato.compareTo(nodo.getIzquierdo().getDato()) > 0) {
-                nodo.setIzquierdo(rotarIzquierda(nodo.getIzquierdo()));
-                return rotarDerecha(nodo);
-            }
-            if (balance < -1 && dato.compareTo(nodo.getDerecho().getDato()) < 0) {
-                nodo.setDerecho(rotarDerecha(nodo.getDerecho()));
-                return rotarIzquierda(nodo);
-            }
-            return nodo;
-        }
-        public void eliminar(T dato) {
-            NodoArbolAVL<T> nodoAEliminar = buscarNodo(raiz, dato);
-            if (nodoAEliminar != null) {
-                raiz = eliminarRec(raiz, dato);
-                ultimaOperacionExplicacion = "Eliminado el dato: " + dato;
-            } else {
-                ultimaOperacionExplicacion = "El dato " + dato + " no se encontró para eliminar.";
-            }
-        }
-        private NodoArbolAVL<T> eliminarRec(NodoArbolAVL<T> nodo, T dato) {
-            if (nodo == null) {
-                return null;
-            }
-            int comparacion = dato.compareTo(nodo.getDato());
-            if (comparacion < 0) {
-                nodo.setIzquierdo(eliminarRec(nodo.getIzquierdo(), dato));
-            } else if (comparacion > 0) {
-                nodo.setDerecho(eliminarRec(nodo.getDerecho(), dato));
-            } else { 
-                if ((nodo.getIzquierdo() == null) || (nodo.getDerecho() == null)) {
-                    NodoArbolAVL<T> temp = (nodo.getIzquierdo() != null) ? nodo.getIzquierdo() : nodo.getDerecho();
-                    if (temp == null) {
-                        nodo = null;
-                    } else {
-                        nodo = temp;
+    @Override
+    public String toString() {
+        return String.valueOf(data);
+    }
+}
+
+public class AVL<E extends Comparable<E>> {
+    private NodeAVL<E> root;
+    private String ultimaOperacionExplicacion = "Ninguna operación realizada.";
+    private boolean height;
+
+    public AVL() {
+        this.root = null;
+    }
+
+    public NodeAVL<E> getRootAVL() {
+        return root;
+    }
+
+    public boolean isEmpty() {
+        return root == null;
+    }
+
+    public void insert(E x) throws ExceptionItemDuplicate {
+        root = insertRec(x, root);
+        ultimaOperacionExplicacion = "Insertado el dato: " + x;
+    }
+
+    private NodeAVL<E> insertRec(E x, NodeAVL<E> node) throws ExceptionItemDuplicate {
+        NodeAVL<E> res = node;
+
+        if (node == null) {
+            res = new NodeAVL<>(x);
+            height = true;
+        } else {
+            int cmp = x.compareTo(node.getData());
+
+            if (cmp == 0)
+                throw new ExceptionItemDuplicate("El elemento " + x + " ya está en el árbol.");
+
+            if (cmp < 0) {
+                res.setLeft(insertRec(x, node.getLeft()));
+
+                if (height) {
+                    switch (res.getFe()) {
+                        case 1: res.setFe(0); height = false; break;
+                        case 0: res.setFe(-1); height = true; break;
+                        case -1: res = balanceToRight(res); height = false; break;
                     }
-                } else { 
-                    NodoArbolAVL<T> temp = encontrarMinimo(nodo.getDerecho());
-                    nodo.setDato(temp.getDato());
-                    nodo.setDerecho(eliminarRec(nodo.getDerecho(), temp.getDato()));
+                }
+            } else {
+                res.setRight(insertRec(x, node.getRight()));
+
+                if (height) {
+                    switch (res.getFe()) {
+                        case -1: res.setFe(0); height = false; break;
+                        case 0: res.setFe(1); height = true; break;
+                        case 1: res = balanceToLeft(res); height = false; break;
+                    }
                 }
             }
-            if (nodo == null) {
-                return null; 
-            }
-            actualizarAltura(nodo);
-            int balance = getBalanceFactor(nodo);
-            if (balance > 1 && getBalanceFactor(nodo.getIzquierdo()) >= 0) return rotarDerecha(nodo);
-            if (balance > 1 && getBalanceFactor(nodo.getIzquierdo()) < 0) {
-                nodo.setIzquierdo(rotarIzquierda(nodo.getIzquierdo()));
-                return rotarDerecha(nodo);
-            }
-            if (balance < -1 && getBalanceFactor(nodo.getDerecho()) <= 0) return rotarIzquierda(nodo);
-            if (balance < -1 && getBalanceFactor(nodo.getDerecho()) > 0) {
-                nodo.setDerecho(rotarDerecha(nodo.getDerecho()));
-                return rotarIzquierda(nodo);
-            }
-            return nodo;
         }
-        private NodoArbolAVL<T> encontrarMinimo(NodoArbolAVL<T> nodo) {
-            while (nodo.getIzquierdo() != null) {
-                nodo = nodo.getIzquierdo();
+
+        return res;
+    }
+
+    private NodeAVL<E> balanceToRight(NodeAVL<E> node) {
+        NodeAVL<E> hijo = node.getLeft();
+
+        if (hijo.getFe() == -1) {
+            node.setFe(0);
+            hijo.setFe(0);
+            node = rotateRight(node);
+        } else {
+            NodeAVL<E> nieto = hijo.getRight();
+
+            switch (nieto.getFe()) {
+                case -1: node.setFe(1); hijo.setFe(0); break;
+                case 0:  node.setFe(0); hijo.setFe(0); break;
+                case 1:  node.setFe(0); hijo.setFe(-1); break;
             }
-            return nodo;
+
+            nieto.setFe(0);
+            node.setLeft(rotateLeft(hijo));
+            node = rotateRight(node);
         }
-        private NodoArbolAVL<T> buscarNodo(NodoArbolAVL<T> nodo, T dato) {
-            if (nodo == null || nodo.getDato().equals(dato)) {
-                return nodo;
+
+        return node;
+    }
+
+    private NodeAVL<E> balanceToLeft(NodeAVL<E> node) {
+        NodeAVL<E> hijo = node.getRight();
+
+        if (hijo.getFe() == 1) {
+            node.setFe(0);
+            hijo.setFe(0);
+            node = rotateLeft(node);
+        } else {
+            NodeAVL<E> nieto = hijo.getLeft();
+
+            switch (nieto.getFe()) {
+                case 1:  node.setFe(-1); hijo.setFe(0); break;
+                case 0:  node.setFe(0);  hijo.setFe(0); break;
+                case -1: node.setFe(0);  hijo.setFe(1); break;
             }
-            int comparacion = dato.compareTo(nodo.getDato());
-            if (comparacion < 0) {
-                return buscarNodo(nodo.getIzquierdo(), dato);
+
+            nieto.setFe(0);
+            node.setRight(rotateRight(hijo));
+            node = rotateLeft(node);
+        }
+
+        return node;
+    }
+
+    private NodeAVL<E> rotateRight(NodeAVL<E> node) {
+        NodeAVL<E> hijo = node.getLeft();
+        node.setLeft(hijo.getRight());
+        hijo.setRight(node);
+        return hijo;
+    }
+
+    private NodeAVL<E> rotateLeft(NodeAVL<E> node) {
+        NodeAVL<E> hijo = node.getRight();
+        node.setRight(hijo.getLeft());
+        hijo.setLeft(node);
+        return hijo;
+    }
+
+    public void inOrden() {
+        if (isEmpty()) System.out.println("Árbol vacío");
+        else inOrden(root);
+        System.out.println();
+    }
+
+    private void inOrden(NodeAVL<E> node) {
+        if (node.getLeft() != null) inOrden(node.getLeft());
+        System.out.print(node + ", ");
+        if (node.getRight() != null) inOrden(node.getRight());
+    }
+
+    public void preOrden() {
+        if (isEmpty()) System.out.println("Árbol vacío");
+        else preOrden(root);
+        System.out.println();
+    }
+
+    private void preOrden(NodeAVL<E> node) {
+        if (node != null) {
+            System.out.print(node + ", ");
+            preOrden(node.getLeft());
+            preOrden(node.getRight());
+        }
+    }
+
+    public void postOrden() {
+        if (isEmpty()) System.out.println("Árbol vacío");
+        else postOrden(root);
+        System.out.println();
+    }
+
+    private void postOrden(NodeAVL<E> node) {
+        if (node != null) {
+            postOrden(node.getLeft());
+            postOrden(node.getRight());
+            System.out.print(node + ", ");
+        }
+    }
+
+    public String postOrdenIter() {
+        StringBuilder sb = new StringBuilder();
+        if (root == null) return "";
+
+        Stack<NodeAVL<E>> stack1 = new Stack<>();
+        Stack<NodeAVL<E>> stack2 = new Stack<>();
+        stack1.push(root);
+
+        while (!stack1.isEmpty()) {
+            NodeAVL<E> node = stack1.pop();
+            stack2.push(node);
+
+            if (node.getLeft() != null) stack1.push(node.getLeft());
+            if (node.getRight() != null) stack1.push(node.getRight());
+        }
+
+        while (!stack2.isEmpty()) {
+            sb.append(stack2.pop()).append(", ");
+        }
+
+        return sb.toString();
+    }
+
+    public E recover(E x) throws ExceptionItemNoFound {
+        NodeAVL<E> res = recover(x, root);
+        if (res == null)
+            throw new ExceptionItemNoFound("El dato " + x + " no está");
+        return res.getData();
+    }
+
+    private NodeAVL<E> recover(E x, NodeAVL<E> node) {
+        if (node == null) return null;
+
+        int cmp = x.compareTo(node.getData());
+        if (cmp < 0) return recover(x, node.getLeft());
+        else if (cmp > 0) return recover(x, node.getRight());
+        else return node;
+    }
+
+    public int altura() {
+        return altura(root);
+    }
+
+    private int altura(NodeAVL<E> node) {
+        if (node == null) return -1;
+        return 1 + Math.max(altura(node.getLeft()), altura(node.getRight()));
+    }
+
+    public boolean isSimilary(AVL<E> otherTree) {
+        return isSimilary(this.root, otherTree.root);
+    }
+
+    private boolean isSimilary(NodeAVL<E> node1, NodeAVL<E> node2) {
+        if (node1 == null && node2 == null) return true;
+        if (node1 == null || node2 == null) return false;
+
+        return isSimilary(node1.getLeft(), node2.getLeft()) &&
+               isSimilary(node1.getRight(), node2.getRight());
+    }
+
+    public void remove(E x) throws ExceptionItemNoFound {
+    height = false; // Usamos height para saber si el árbol cambió de altura
+    root = removeRec(x, root);
+    ultimaOperacionExplicacion = "Eliminado el dato: " + x;
+}
+
+    private NodeAVL<E> removeRec(E x, NodeAVL<E> node) throws ExceptionItemNoFound {
+    if (node == null)
+        throw new ExceptionItemNoFound("El dato " + x + " no está");
+
+    int cmp = x.compareTo(node.getData());
+
+    if (cmp < 0) {
+        node.setLeft(removeRec(x, node.getLeft()));
+        if (height) {
+            node = balanceAfterRightDelete(node);
+        }
+    } else if (cmp > 0) {
+        node.setRight(removeRec(x, node.getRight()));
+        if (height) {
+            node = balanceAfterLeftDelete(node);
+        }
+    } else {
+        height = true;
+        if (node.getLeft() == null) {
+            return node.getRight();
+        } else if (node.getRight() == null) {
+            return node.getLeft();
+        } else {
+            NodeAVL<E> successor = min(node.getRight());
+            node.setData(successor.getData());
+            node.setRight(removeRec(successor.getData(), node.getRight()));
+            if (height) {
+                node = balanceAfterLeftDelete(node);
+            }
+        }
+    }
+    
+ 
+    return node;
+}
+
+    private NodeAVL<E> balanceAfterRightDelete(NodeAVL<E> node) {
+    switch (node.getFe()) {
+        case -1:
+            node.setFe(0);
+            break;
+        case 0:
+            node.setFe(1);
+            height = false;
+            break;
+        case 1:
+            NodeAVL<E> right = node.getRight();
+            if (right.getFe() >= 0) {
+                node = rotateLeft(node);
+                if (right.getFe() == 0) {
+                    node.setFe(-1);
+                    node.getLeft().setFe(1);
+                    height = false;
+                } else {
+                    node.setFe(0);
+                    node.getLeft().setFe(0);
+                }
             } else {
-                return buscarNodo(nodo.getDerecho(), dato);
+                node.setRight(rotateRight(right));
+                node = rotateLeft(node);
+                updateFEAfterDoubleRotation(node);
             }
-        }
-        public List<String> getRepresentacionCompleta() {
+            break;
+    }
+    return node;
+}
+
+private NodeAVL<E> balanceAfterLeftDelete(NodeAVL<E> node) {
+    switch (node.getFe()) {
+        case 1:
+            node.setFe(0);
+            break;
+        case 0:
+            node.setFe(-1);
+            height = false;
+            break;
+        case -1:
+            NodeAVL<E> left = node.getLeft();
+            if (left.getFe() <= 0) {
+                node = rotateRight(node);
+                if (left.getFe() == 0) {
+                    node.setFe(1);
+                    node.getRight().setFe(-1);
+                    height = false;
+                } else {
+                    node.setFe(0);
+                    node.getRight().setFe(0);
+                }
+            } else {
+                node.setLeft(rotateLeft(left));
+                node = rotateRight(node);
+                updateFEAfterDoubleRotation(node);
+            }
+            break;
+    }
+    return node;
+}
+
+private void updateFEAfterDoubleRotation(NodeAVL<E> node) {
+    int fe = node.getFe();
+    if (fe == 1) {
+        node.getLeft().setFe(0);
+        node.getRight().setFe(-1);
+    } else if (fe == -1) {
+        node.getLeft().setFe(1);
+        node.getRight().setFe(0);
+    } else {
+        node.getLeft().setFe(0);
+        node.getRight().setFe(0);
+    }
+    node.setFe(0);
+}
+
+    private NodeAVL<E> min(NodeAVL<E> node) {
+        while (node.getLeft() != null) node = node.getLeft();
+        return node;
+    }
+
+    public String toString() {
+        return (root == null) ? "Árbol vacío" : root.toString();
+    }
+
+    public List<String> getRepresentacionCompleta() {
             List<String> representacion = new ArrayList<>();
-            if (raiz == null) {
+            if (root == null) {
                 representacion.add("El árbol AVL está vacío.");
                 return representacion;
             }
-            obtenerRepresentacionRec(raiz, representacion, 0);
+            obtenerRepresentacionRec(root, representacion, 0);
             return representacion;
         }
-        private void obtenerRepresentacionRec(NodoArbolAVL<T> nodo, List<String> representacion, int nivel) {
+        private void obtenerRepresentacionRec(NodeAVL<E> nodo, List<String> representacion, int nivel) {
             if (nodo != null) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < nivel; i++) sb.append("  ");
                 sb.append("- ").append(nodo.getRepresentacionGrafica());
-                if (nodo.getIzquierdo() != null || nodo.getDerecho() != null) {
+                if (nodo.getLeft() != null || nodo.getRight() != null) {
                     sb.append(" (");
-                    sb.append(nodo.getIzquierdo() != null ? "Izq: " + nodo.getIzquierdo().getDato() : "Izq: null");
+                    sb.append(nodo.getLeft() != null ? "Izq: " + nodo.getLeft().getData() : "Izq: null");
                     sb.append(", ");
-                    sb.append(nodo.getDerecho() != null ? "Der: " + nodo.getDerecho().getDato() : "Der: null");
+                    sb.append(nodo.getRight() != null ? "Der: " + nodo.getRight().getData() : "Der: null");
                     sb.append(")");
                 }
                 representacion.add(sb.toString());
-                obtenerRepresentacionRec(nodo.getIzquierdo(), representacion, nivel + 1);
-                obtenerRepresentacionRec(nodo.getDerecho(), representacion, nivel + 1);
+                obtenerRepresentacionRec(nodo.getLeft(), representacion, nivel + 1);
+                obtenerRepresentacionRec(nodo.getRight(), representacion, nivel + 1);
             }
         }
-        public String getUltimaOperacionExplicacion() {
+    
+    public String getUltimaOperacionExplicacion() {
             return ultimaOperacionExplicacion;
         }
+}
+
+//exceptions
+public class ExceptionItemDuplicate extends Exception {
+    public ExceptionItemDuplicate(String message) {
+        super(message);
     }
+}
+public class ExceptionItemNoFound extends Exception {
+    public ExceptionItemNoFound() {
+        super();
+    }
+    public ExceptionItemNoFound(String msg) {
+        super(msg);
+    }
+}
+
+
     static class NodoSplayTree<T extends Comparable<T>> extends Nodo<T> {
         NodoSplayTree<T> padre;
         NodoSplayTree<T> izquierdo;
@@ -844,7 +1104,7 @@ public class SimuladorApplication implements WebMvcConfigurer {
         }
     }
     private ArbolBinario<Integer> simuladorArbolBinario = new ArbolBinario<>();
-    private ArbolAVL<Integer> simuladorArbolAVL = new ArbolAVL<>();
+    private final AVL<Integer> arbol = new AVL<>();
     private SplayTree<Integer> simuladorSplayTree = new SplayTree<>();
     private ArbolB<Integer> simuladorArbolB = new ArbolB<>(3);
     
@@ -873,24 +1133,47 @@ public class SimuladorApplication implements WebMvcConfigurer {
         return ResponseEntity.ok(simuladorArbolBinario.getUltimaOperacionExplicacion());
     }
     @PostMapping("/api/arbol-avl/insertar")
-    public ResponseEntity<String> insertarEnArbolAVL(@RequestBody Integer dato) {
-        if (dato == null) return ResponseEntity.badRequest().body("Dato nulo.");
-        simuladorArbolAVL.insertar(dato);
-        return ResponseEntity.ok(simuladorArbolAVL.getUltimaOperacionExplicacion());
+    public ResponseEntity<Map<String, Object>> insertar(@RequestParam int valor) {
+        try {
+            arbol.insert(valor);
+        } catch (ExceptionItemDuplicate e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+        }
+
+        return ResponseEntity.ok(convertirArbol(arbol.getRootAVL()));
     }
+
     @DeleteMapping("/api/arbol-avl/eliminar")
-    public ResponseEntity<String> eliminarDeArbolAVL(@RequestBody Integer dato) {
-        if (dato == null) return ResponseEntity.badRequest().body("Dato nulo.");
-        simuladorArbolAVL.eliminar(dato);
-        return ResponseEntity.ok(simuladorArbolAVL.getUltimaOperacionExplicacion());
+    public ResponseEntity<Map<String, Object>> eliminar(@RequestParam int valor) {
+        try {
+            arbol.remove(valor);
+        } catch (ExceptionItemNoFound e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        return ResponseEntity.ok(convertirArbol(arbol.getRootAVL()));
     }
+
     @GetMapping("/api/arbol-avl/mostrar")
     public ResponseEntity<List<String>> mostrarArbolAVL() {
-        return ResponseEntity.ok(simuladorArbolAVL.getRepresentacionCompleta());
+        return ResponseEntity.ok(arbol.getRepresentacionCompleta());
     }
+
     @GetMapping("/api/arbol-avl/explicacion")
     public ResponseEntity<String> obtenerExplicacionArbolAVL() {
-        return ResponseEntity.ok(simuladorArbolAVL.getUltimaOperacionExplicacion());
+        return ResponseEntity.ok(arbol.getUltimaOperacionExplicacion());
+    }
+
+    private Map<String, Object> convertirArbol(NodeAVL<Integer> nodo) {
+        if (nodo == null) return null;
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", System.identityHashCode(nodo));
+        map.put("valor", nodo.getData());
+        map.put("fe", nodo.getFe());
+        map.put("izquierda", convertirArbol(nodo.getLeft()));
+        map.put("derecha", convertirArbol(nodo.getRight()));
+        return map;
     }
     @PostMapping("/api/splay-tree/insertar")
     public ResponseEntity<String> insertarEnSplayTree(@RequestBody Integer dato) {

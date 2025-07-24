@@ -376,3 +376,4 @@ document.addEventListener('shown.bs.tab', function (event) {
 
 // Llama a refreshGraph para la primera estructura al cargar la página
 refreshGraph('arbol-binario');
+
