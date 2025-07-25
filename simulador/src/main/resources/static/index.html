@@ -201,6 +201,21 @@
         .btn-primary {
             border-radius: 10px;
     }
+
+    #graph-btree {
+      width: 100%;
+            height: 500px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+
+        .card {
+            border-radius: 15px;
+        }
+
+        .btn-primary {
+            border-radius: 10px;
+    }
     </style>
 </head>
 <body>
@@ -455,7 +470,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Visualización Gráfica:</label>
-                        <div id="treeContainerArbolB" class="tree-container">
+                        <div id="graph-btree" class="tree-container">
                             <p class="text-center w-100">Cargando visualización...</p>
                         </div>
                     </div>
@@ -748,8 +763,8 @@
 
    try {
        let message;
-       if (apiEndpoint === 'arbol-avl') {
-           // Para AVL usa query parameter
+       if (apiEndpoint === 'arbol-avl' || apiEndpoint === 'arbol-b') {
+           // Para AVL y BTree usa query parameter
            message = await fetchApi(`/api/${apiEndpoint}/insertar?valor=${valor}`, {
                method: 'POST'
            });
@@ -793,7 +808,7 @@ async function handleDelete(apiEndpoint, inputElement, outputElement, explanatio
 
    try {
        let message;
-       if (apiEndpoint === 'arbol-avl') {
+       if (apiEndpoint === 'arbol-avl' || apiEndpoint === 'arbol-b') {
            // Para AVL usa query parameter
            message = await fetchApi(`/api/${apiEndpoint}/eliminar?valor=${valor}`, {
                method: 'DELETE'
@@ -861,7 +876,9 @@ async function handleDelete(apiEndpoint, inputElement, outputElement, explanatio
             mostrarRepresentacionAVL();
             mostrarExplicacionAVL();
             refreshTree('splay-tree', 'outputSplayTree', 'explanationSplayTree', treeContainerSplay, 'splay');
-            refreshTree('arbol-b', 'outputArbolB', 'explanationArbolB', treeContainerArbolB, 'arbolB');
+           
+            mostrarRepresentacionBTree();
+            mostrarExplicacionBTree();
         });
 
         btnTestApi.addEventListener('click', async () => {
@@ -900,17 +917,7 @@ async function handleDelete(apiEndpoint, inputElement, outputElement, explanatio
             }
         });
 
-        btnInsertarArbolB.addEventListener('click', () => handleInsert('arbol-b', inputInsertarArbolB, 'outputArbolB', 'explanationArbolB', treeContainerArbolB, 'arbolB'));
-        btnEliminarArbolB.addEventListener('click', () => handleDelete('arbol-b', inputEliminarArbolB, 'outputArbolB', 'explanationArbolB', treeContainerArbolB, 'arbolB'));
-        btnMostrarArbolB.addEventListener('click', () => refreshTree('arbol-b', 'outputArbolB', 'explanationArbolB', treeContainerArbolB, 'arbolB'));
-        btnObtenerExplicacionArbolB.addEventListener('click', async () => {
-            try {
-                const explanation = await fetchApi(`${API_BASE_URL}/arbol-b/explicacion`);
-                updateTextOutput('explanationArbolB', explanation);
-            } catch (error) {
-                updateTextOutput('explanationArbolB', `Error al obtener explicación: ${error.message}`, true);
-            }
-        });
+     
 
 
 
@@ -1062,6 +1069,217 @@ function mostrarExplicacionAVL() {
       buildVisual(nodo.izquierda, nodo.id, positions, scale, offsetX, offsetY, dx, dy);
       buildVisual(nodo.derecha, nodo.id, positions, scale, offsetX, offsetY, dx, dy);
     }
+
+
+
+
+
+
+
+
+
+
+    
+
+    const containerBTree = document.getElementById('graph-btree');
+    const nodesBTree = new vis.DataSet();
+    const edgesBTree = new vis.DataSet();
+    
+    const networkBTree = new vis.Network(containerBTree, { nodes: nodesBTree, edges: edgesBTree }, {
+      physics: false,
+      interaction: { dragNodes: false, dragView: false, zoomView: false },
+      nodes: {
+        shape: 'box',
+        font: { color: 'black', size: 12, face: 'monospace' },
+        color: { background: '#e3f2fd', border: '#1976d2' },
+        borderWidth: 2,
+        margin: 10,
+        widthConstraint: { minimum: 80 }
+      },
+      edges: { 
+        arrows: 'to',
+        color: { color: '#666666' },
+        width: 2
+      }
+    });
+
+    // Event Listeners
+    document.getElementById('btnInsertarArbolB').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const valor = document.getElementById('inputInsertarArbolB').value;
+      if (!valor) return alert('Por favor ingrese un valor');
+      
+      try {
+        const res = await fetch(`/api/arbol-b/insertar?valor=${valor}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Error en la inserción');
+        
+        const treeData = await res.json();
+        updateTreeVisualizationB(treeData);
+        mostrarRepresentacionBTree();
+        mostrarExplicacionBTree();
+        document.getElementById('inputInsertarArbolB').value = '';
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    document.getElementById('btnEliminarArbolB').addEventListener('click', async () => {
+      const valor = document.getElementById('inputEliminarArbolB').value;
+      if (!valor) return alert('Por favor ingrese un valor');
+      
+      try {
+        const res = await fetch(`/api/arbol-b/eliminar?valor=${valor}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Valor no encontrado');
+        
+        const treeData = await res.json();
+        updateTreeVisualizationB(treeData);
+        mostrarRepresentacionBTree();
+        mostrarExplicacionBTree();
+        document.getElementById('inputInsertarArbolB').value = '';
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    document.getElementById('btnMostrarArbolB').addEventListener('click', mostrarRepresentacionBTree);
+    document.getElementById('btnObtenerExplicacionArbolB').addEventListener('click', mostrarExplicacionBTree);
+
+    // Funciones auxiliares
+    async function mostrarRepresentacionBTree() {
+      try {
+        const res = await fetch('/api/arbol-b/mostrar');
+        if (!res.ok) throw new Error('Error al obtener árbol');
+        
+        const texto = await res.json();
+        document.getElementById('outputArbolB').textContent = texto.join('\n');
+      } catch (error) {
+        document.getElementById('outputArbolB').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    async function mostrarExplicacionBTree() {
+      try {
+        const res = await fetch('/api/arbol-b/explicacion');
+        if (!res.ok) throw new Error('Error al obtener explicación');
+        
+        const explicacion = await res.text();
+        document.getElementById('explanationArbolB').textContent = explicacion;
+      } catch (error) {
+        document.getElementById('explanationArbolB').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    function updateTreeVisualizationB(treeData) {
+      nodesBTree.clear();
+      edgesBTree.clear();
+      
+      if (!treeData) {
+        return;
+      }
+
+      const positions = {};
+      calculateBTreePositions(treeData, 0, 0, positions);
+
+      const allX = Object.values(positions).map(p => p.x);
+      const allY = Object.values(positions).map(p => p.y);
+      
+      if (allX.length === 0) return;
+      
+      const minX = Math.min(...allX);
+      const maxX = Math.max(...allX);
+      const minY = Math.min(...allY);
+      const maxY = Math.max(...allY);
+
+      const dx = 120; // Separación horizontal para B-Tree
+      const dy = 100; // Separación vertical
+
+      buildBTreeVisual(treeData, null, positions, minX, minY, dx, dy);
+      
+      // Ajustar la vista
+      setTimeout(() => {
+        networkBTree.fit({ animation: { duration: 500 } });
+      }, 100);
+    }
+
+    function calculateBTreePositions(nodo, x, depth, positions) {
+      if (!nodo) return x;
+
+      // Calcular posiciones de hijos primero (traversal en orden)
+      let currentX = x;
+      const children = nodo.children || [];
+      
+      for (let i = 0; i < children.length; i++) {
+        if (children[i]) {
+          currentX = calculateBTreePositions(children[i], currentX, depth + 1, positions);
+        }
+      }
+
+      // Posición del nodo actual
+      if (children.length > 0) {
+        // Si tiene hijos, centrarlo entre ellos
+        const childPositions = children
+          .filter(child => child)
+          .map(child => positions[child.id])
+          .filter(pos => pos);
+        
+        if (childPositions.length > 0) {
+          const avgX = childPositions.reduce((sum, pos) => sum + pos.x, 0) / childPositions.length;
+          positions[nodo.id] = { x: avgX, y: depth };
+        } else {
+          positions[nodo.id] = { x: currentX, y: depth };
+          currentX++;
+        }
+      } else {
+        // Nodo hoja
+        positions[nodo.id] = { x: currentX, y: depth };
+        currentX++;
+      }
+
+      return currentX;
+    }
+
+    function buildBTreeVisual(nodo, padreId, positions, offsetX, offsetY, dx, dy) {
+      if (!nodo) return;
+
+      const pos = positions[nodo.id];
+      const x = (pos.x - offsetX) * dx;
+      const y = (pos.y - offsetY) * dy;
+
+      // Crear etiqueta del nodo con múltiples claves
+      const keys = nodo.keys || [];
+      const label = '[' + keys.join(', ') + ']';
+
+      nodesBTree.add({
+        id: nodo.id,
+        label: label,
+        x: x,
+        y: y,
+        fixed: { x: true, y: true }
+      });
+
+      // Crear aristas hacia el padre
+      if (padreId !== null) {
+        edgesBTree.add({ 
+          from: padreId, 
+          to: nodo.id,
+          smooth: { type: 'cubicBezier', overshoot: 0 }
+        });
+      }
+
+      // Procesar hijos
+      const children = nodo.children || [];
+      for (let i = 0; i < children.length; i++) {
+        if (children[i]) {
+          buildBTreeVisual(children[i], nodo.id, positions, offsetX, offsetY, dx, dy);
+        }
+      }
+    }
+
+    // Cargar árbol inicial
+    window.addEventListener('load', () => {
+      mostrarRepresentacionBTree();
+      mostrarExplicacionBTree();
+    });
     </script>
 
 </body>

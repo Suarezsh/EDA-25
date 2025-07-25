@@ -208,7 +208,7 @@ public class SimuladorApplication implements WebMvcConfigurer {
         this.fe = fe;
     }
     public String getRepresentacionGrafica() {
-            return String.valueOf(data) + "(H:" + altura + ")";
+            return String.valueOf(data) + "(H:" ;
         }
     public String getExplicacion() {
             return "Nodo con valor: " + data + ", Altura: " + altura;
@@ -582,7 +582,7 @@ private void updateFEAfterDoubleRotation(NodeAVL<E> node) {
             if (nodo != null) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < nivel; i++) sb.append("  ");
-                sb.append("- ").append(nodo.getRepresentacionGrafica());
+                sb.append("- ").append(nodo.getRepresentacionGrafica()).append(nivel).append(")");
                 if (nodo.getLeft() != null || nodo.getRight() != null) {
                     sb.append(" (");
                     sb.append(nodo.getLeft() != null ? "Izq: " + nodo.getLeft().getData() : "Izq: null");
@@ -825,288 +825,515 @@ public class ExceptionItemNoFound extends Exception {
             return ultimaOperacionExplicacion;
         }
     }
-    static class NodoArbolB<T extends Comparable<T>> {
-        List<T> claves;
-        List<NodoArbolB<T>> hijos; 
-        boolean esHoja;
-        int grado; 
-        public NodoArbolB(int grado, boolean esHoja) {
-            this.grado = grado;
-            this.esHoja = esHoja;
-            this.claves = new ArrayList<>(2 * grado - 1);
-            this.hijos = new ArrayList<>(2 * grado); 
+  
+//Btree
+    public class NodeB<E extends Comparable<E>> {
+	 public ArrayList<E> keys;
+	 public ArrayList<NodeB<E>> childs;
+	 public int count;
+		public NodeB(int orden){
+			 this.keys = new ArrayList<E>(orden);
+			 this.childs = new ArrayList<NodeB<E>>(orden);
+			 this.count = 0;
+			 for(int i=0; i<orden; i++){
+			 this.keys.add(null);
+			 this.childs.add(null);
+			 }
+	 }
+	/*Método que verifica la regla del máximo tomando en cuenta el orden del árbol al que
+	pertenece */   
+	 public boolean nodeFull(int orden){
+		 return count == orden - 1;
+	 }
+	/*Método que verifica la regla del mínimo tomando en cuenta el orden del árbol al que
+	 Pertenece el nodo*/
+	 public boolean nodeEmpty(int orden) {
+	        return count < (orden-1)/2;
+	 }
+	/*Método que busca de manera secuencial el elemento ‘cl’ en el conjunto de claves del nodo. Si no está, el
+	método retorna False y en pos[0] la posición del desciende por donde se debe descender en el árbol. En caso
+	contrario, retorna True y la posición en que la clave está en el nodo al que pertenece nodo*/
+	public boolean searchNode(E cl, int pos[]){
+        pos[0]=0;
+        while (pos[0] < this.count && this.keys.get(pos[0]).compareTo(cl)<0) 
+           pos[0]++;
+        return(pos[0]<this.count && this.keys.get(pos[0]).equals(cl));
+        	   
+    }
+
+    public ArrayList<E> getKeys() {
+		return keys;
+	}
+	public void setKeys(ArrayList<E> keys) {
+		this.keys = keys;
+	}
+	public ArrayList<NodeB<E>> getChilds() {
+		return childs;
+	}
+	public void setChilds(ArrayList<NodeB<E>> childs) {
+		this.childs = childs;
+	}
+	public int getCount() {
+		return count;
+	}
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	/*Método que retorna el conjunto de claves contenidas en el átbol*/
+	public String toString(){
+		String result = "(";
+	    for(int i = 0; i < count; i++){
+	        if(i > 0) result += ", ";
+	        result += this.keys.get(i);
+	    }
+	    result += ")";
+	    return result;
+	 }
+	
+	public void add (E cl,int orden) {
+		if (!nodeFull(orden)) {
+			this.keys.set(this.count, cl);
+		count++;
+		}
+		else
+			System.out.println ("Nodo esta en ele maximo...");
+			
+	}
+    public boolean isLeaf() {
+    return this.childs.get(0) == null;
+}
+	}
+
+
+    public class BTree<E extends Comparable<E>> {
+    private NodeB<E> root;
+    private int orden; // orden del BTree
+
+    private boolean up;
+    private NodeB<E> nDes;
+   
+    public BTree(int orden) {
+        this.orden = orden;
+        this.root = null;
+    }
+
+    public boolean isEmpty() {
+        return this.root == null;
+    }
+    
+ // Inserta una clave, si no existe
+    public void insert(E cl) {
+       up=false;
+       E mediana;
+       
+       mediana =push(this.root,cl);
+       
+       if(up) {
+    	 
+    	        NodeB<E> nuevo = new NodeB<>(orden);
+    	        nuevo.count = 1;
+    	        nuevo.keys.set(0, mediana);
+    	        nuevo.childs.set(0, this.root);
+    	        nuevo.childs.set(1, nDes);
+    	        this.root = nuevo;
+                ultimaOperacionExplicacion = "Insertado " + cl + ". Se creó nueva raíz por división.";
+    	     }
+        else {
+                 ultimaOperacionExplicacion = "Insertado " + cl + " exitosamente.";
+             }
+    }
+
+    private E push(NodeB<E> current, E cl) {
+    	int[] pos = new int[1];
+    	E mediana;
+    	if (current == null) {
+            up = true;
+            nDes = null;
+            return cl;
         }
-        public List<T> getClaves() {
-            return claves;
+    	else {
+	        //caso base 
+    		 boolean f1 = current.searchNode(cl, pos);
+        	 if(f1) {
+        		 System.out.println("Key duplicandose...");
+        		 return null;
+        	 }
+        	 mediana= push (current.childs.get(pos[0]),cl );
+        	 if  (up) {
+        		 if(current.nodeFull(orden))
+        			 return divideNode(current, mediana,pos[0]);
+        		 else {
+        			 putNode(current, mediana, nDes,pos[0]);
+        			 up = false;
+        		 }
+        	 }
+        	 return mediana;
         }
-        public List<NodoArbolB<T>> getHijos() {
-            return hijos;
+    	
+    }
+
+    // Inserta una clave ordenadamente en un nodo no lleno
+    private void putNode(NodeB<E> current, E cl, NodeB<E> rd, int k) {
+    	 int i;
+    	 for(i = current.count-1; i>=k;i--) {
+    		 current.keys.set(i+1,  current.keys.get(i));
+    		 current.childs.set(i+2,  current.childs.get(i+1));
+    	 }
+        
+        current.keys.set(k, cl);
+        current.childs.set(k + 1, rd);
+        current.count ++;
+    }
+    
+    
+    private E divideNode(NodeB<E> current, E cl, int k) {
+        NodeB<E> rd = nDes;
+        nDes = new NodeB<E>(this.orden);
+        int i;
+
+        int posMdna = (k <= this.orden / 2) ? this.orden / 2 : this.orden  / 2 + 1;
+        
+        for (i = posMdna; i < orden - 1; i++) {
+            nDes.keys.set(i - posMdna, current.keys.get(i));
+            nDes.childs.set(i - posMdna + 1, current.childs.get(i + 1));
         }
-        public boolean esHoja() {
-            return esHoja;
+
+        nDes.count = (orden - 1) - posMdna;
+        current.count = posMdna;
+
+        if (k <= this.orden / 2) {
+            putNode(current, cl, rd, k);
+        } else {
+            putNode(nDes, cl, rd, k - posMdna);
         }
-        public int getGrado() {
-            return grado;
-        }
-        public String getRepresentacionGrafica() {
-            return claves.toString();
-        }
-        public String getExplicacion() {
-            return "Nodo con claves: " + claves.toString() + (esHoja ? " (Hoja)" : " (Interno)");
-        }
-        public void insertarClave(T clave) {
-            int i = 0;
-            while (i < claves.size() && clave.compareTo(claves.get(i)) > 0) {
-                i++;
-            }
-            claves.add(i, clave);
-        }
-        public void insertarHijo(NodoArbolB<T> hijo, int indice) {
-            hijos.add(indice, hijo);
-        }
-        public void removerClave(int indice) {
-            claves.remove(indice);
-        }
-        public void removerHijo(int indice) {
-            hijos.remove(indice);
-        }
-        public T obtenerClave(int indice) {
-            if (indice < 0 || indice >= claves.size()) {
-                throw new IndexOutOfBoundsException("Índice de clave fuera de rango: " + indice);
-            }
-            return claves.get(indice);
-        }
-        public NodoArbolB<T> obtenerHijo(int indice) {
-            if (indice < 0 || indice >= hijos.size()) {
-                throw new IndexOutOfBoundsException("Índice de hijo fuera de rango: " + indice + ", tamaño hijos: " + hijos.size());
-            }
-            return hijos.get(indice);
-        }
-        public int numeroClaves() {
-            return claves.size();
+
+        E median = current.keys.get(current.count - 1);
+        nDes.childs.set(0, current.childs.get(current.count));
+        current.count--;
+
+        up = true;
+        return median;
+    }
+    
+    public E search(E x)throws ExceptionItemNoFound{
+    	E element = searchRec(x,root);
+    	if (element==null)
+    		throw new ExceptionItemNoFound("La clave no existe en el arbol..");
+    	return element;
+    }
+    
+    public E search (E x, NodeB<E> current)throws ExceptionItemNoFound{
+    	int[] pos = new int[1];
+    	
+    	if (current == null)
+            return null;
+    	else {
+	        //caso base 
+    		 boolean f1 = current.searchNode(x, pos);
+        	 if(f1) {
+        		 return current.keys.get(pos[0]);
+        	 }
+        	return searchRec(x,current.childs.get(pos[0])); 
         }
     }
-    static class ArbolB<T extends Comparable<T>> {
-        private NodoArbolB<T> raiz;
-        private int grado; 
-        private String ultimaOperacionExplicacion = "Ninguna operación realizada.";
-        public ArbolB(int grado) {
-            if (grado < 2) throw new IllegalArgumentException("El grado debe ser al menos 2");
-            this.grado = grado;
-            this.raiz = null;
+    
+    private E searchRec(E x , NodeB<E> current) throws ExceptionItemNoFound{
+    	int pos[]=new int[1];
+    	
+    	if(current ==null) {
+    		return null;
+    	}
+    	else {
+    		boolean fl;
+    		fl = current.searchNode(x, pos);
+    		if (fl){
+    				return current.keys.get(pos[0]);
+    		}
+    		return searchRec(x,current.childs.get(pos[0]));
+    	}
+    }
+    
+    public String toString() {
+        String s = "";
+        if (isEmpty())
+            s += "BTree is empty...";
+        else
+            s = writeTree(this.root);
+        return s;
+    }
+
+    private String writeTree(NodeB<E> current) {
+    	int i;
+    	String s = "";
+        if (current != null) {
+         s +=current.toString()+ "\n";
+       
+        for ( i = 0; i <= current.count; i++)        	
+           s +=writeTree(current.childs.get(i));           
         }
-        public void insertar(T clave) {
-            if (raiz == null) {
-                raiz = new NodoArbolB<>(grado, true);
-                raiz.insertarClave(clave);
-                ultimaOperacionExplicacion = "Insertado el dato: " + clave + " (raíz)";
-                return;
-            }
-            if (raiz.numeroClaves() == (2 * grado - 1)) {
-                NodoArbolB<T> nuevaRaiz = new NodoArbolB<>(grado, false); 
-                nuevaRaiz.insertarHijo(raiz, 0);
-                dividirNodo(nuevaRaiz, 0, raiz);
-                raiz = nuevaRaiz;
-            }
-            insertarNoLleno(raiz, clave);
-            ultimaOperacionExplicacion = "Insertado el dato: " + clave;
+        return s;
+    }
+     
+    public void remove(E cl) {
+        if (isEmpty()) {
+            System.out.println("Árbol vacío");
+            return;
         }
-        private void dividirNodo(NodoArbolB<T> padre, int indiceHijo, NodoArbolB<T> hijoLleno) {
-            NodoArbolB<T> nuevoHermano = new NodoArbolB<>(grado, hijoLleno.esHoja());
-            T claveMediana = hijoLleno.obtenerClave(grado - 1);
-            padre.insertarClave(claveMediana);
-            padre.insertarHijo(nuevoHermano, indiceHijo + 1);
-            for (int i = grado; i < 2 * grado - 1; i++) {
-                nuevoHermano.insertarClave(hijoLleno.obtenerClave(i));
-            }
-            if (!hijoLleno.esHoja()) {
-                for (int i = grado; i <= 2 * grado - 1; i++) {
-                    nuevoHermano.insertarHijo(hijoLleno.obtenerHijo(i), i - grado); 
-                }
-            }
-            for (int i = 2 * grado - 2; i >= grado; i--) {
-                hijoLleno.removerClave(i);
-            }
-            if (!hijoLleno.esHoja()) {
-                for (int i = 2 * grado; i >= grado + 1; i--) {
-                    hijoLleno.removerHijo(i);
-                }
-            }
+        delete(this.root, cl);
+        
+        //en caso quede vacia
+        if (this.root.count == 0 && !isLeaf(this.root)) {
+            this.root = this.root.childs.get(0);
         }
-        private void insertarNoLleno(NodoArbolB<T> nodo, T clave) {
-            int i = nodo.numeroClaves() - 1; 
-            if (nodo.esHoja()) {
-                nodo.insertarClave(clave);
-            } else {
-                while (i >= 0 && clave.compareTo(nodo.obtenerClave(i)) < 0) {
-                    i--;
-                }
-                i++; 
-                if (nodo.obtenerHijo(i).numeroClaves() == (2 * grado - 1)) {
-                    dividirNodo(nodo, i, nodo.obtenerHijo(i));
-                    if (clave.compareTo(nodo.obtenerClave(i)) > 0) {
-                        i++; 
+        ultimaOperacionExplicacion = "Eliminado " + cl + " del árbol B.";
+    }
+
+    // Elimina si está en hoja o reemplaza con sucesor si está en nodo interno
+    private void delete(NodeB<E> node, E cl) {
+        if (node == null) return;
+
+        int[] pos = new int[1];
+        boolean found = node.searchNode(cl, pos);
+
+        if (found) {
+        	 deleteFromNode(node, pos[0]);
+            
+        } else {
+        	if (!isLeaf(node)) {
+                delete(node.childs.get(pos[0]), cl);
+                
+                if (node.childs.get(pos[0]) != null && 
+                        node.childs.get(pos[0]).nodeEmpty(orden)) {
+                        fixUnderflow(node, pos[0]);
                     }
-                }
-                insertarNoLleno(nodo.obtenerHijo(i), clave);
             }
-        }
-        public void eliminar(T clave) {
-            if (raiz == null) {
-                ultimaOperacionExplicacion = "El árbol B está vacío, no se puede eliminar " + clave;
-                return;
+        }      
+    }
+    
+    private void deleteFromNode(NodeB<E> node, int pos) {
+        if (isLeaf(node)) {
+            // Caso 1: Eliminación de hoja
+            removeFromLeaf(node, pos);
+        } else {
+            // Caso 2: Eliminación de nodo interno
+            // Opción A: Reemplazar con predecesor
+            if (EnoughKeys(node.childs.get(pos))) {
+                E predecessor = getPredecessor(node.childs.get(pos));
+                node.keys.set(pos, predecessor);
+                delete(node.childs.get(pos), predecessor);
             }
-            eliminarRec(raiz, clave);
-            if (raiz.numeroClaves() == 0 && !raiz.esHoja()) {
-                raiz = raiz.obtenerHijo(0);
+            // Opción B: Reemplazar con sucesor
+            else if (EnoughKeys(node.childs.get(pos + 1))) {
+                E successor = getSuccessor(node.childs.get(pos + 1));
+                node.keys.set(pos, successor);
+                delete(node.childs.get(pos + 1), successor);
             }
-            ultimaOperacionExplicacion = "Eliminado el dato: " + clave;
-        }
-        private void eliminarRec(NodoArbolB<T> nodo, T clave) {
-            int i = 0;
-            while (i < nodo.numeroClaves() && clave.compareTo(nodo.obtenerClave(i)) > 0) {
-                i++;
-            }
-            if (i < nodo.numeroClaves() && clave.compareTo(nodo.obtenerClave(i)) == 0) {
-                if (nodo.esHoja()) {
-                    nodo.removerClave(i);
-                } else {
-                    eliminarDeNodoInterno(nodo, i);
-                }
-            }
+            // Opción C: Fusionar hijos y eliminar
             else {
-                if (nodo.esHoja()) {
-                    ultimaOperacionExplicacion = "El dato " + clave + " no se encontró para eliminar.";
-                    return;
-                }
-                eliminarDelHijo(nodo, i, clave);
-                eliminarRec(nodo.obtenerHijo(i), clave);
+                mergeChildren(node, pos);
+                delete(node.childs.get(pos), node.keys.get(pos));
             }
-        }
-        private void eliminarDeNodoInterno(NodoArbolB<T> nodo, int indiceClave) {
-            T clave = nodo.obtenerClave(indiceClave);
-            NodoArbolB<T> hijoIzquierdo = nodo.obtenerHijo(indiceClave);
-            NodoArbolB<T> hijoDerecho = nodo.obtenerHijo(indiceClave + 1);
-            if (hijoIzquierdo.numeroClaves() >= grado) {
-                T predecesor = obtenerPredecesor(hijoIzquierdo);
-                nodo.claves.set(indiceClave, predecesor);
-                eliminarRec(hijoIzquierdo, predecesor);
-            }
-            else if (hijoDerecho.numeroClaves() >= grado) {
-                T sucesor = obtenerSucesor(hijoDerecho);
-                nodo.claves.set(indiceClave, sucesor);
-                eliminarRec(hijoDerecho, sucesor);
-            }
-            else {
-                fusionarHijos(nodo, indiceClave);
-                eliminarRec(hijoIzquierdo, clave);
-            }
-        }
-        private void eliminarDelHijo(NodoArbolB<T> nodo, int indiceHijo, T clave) {
-            NodoArbolB<T> hijo = nodo.obtenerHijo(indiceHijo);
-            if (hijo.numeroClaves() < grado) {
-                rellenarHijo(nodo, indiceHijo);
-            }
-            eliminarRec(nodo.obtenerHijo(indiceHijo), clave);
-        }
-        private void rellenarHijo(NodoArbolB<T> nodo, int indiceHijo) {
-            if (indiceHijo != 0 && nodo.obtenerHijo(indiceHijo - 1).numeroClaves() >= grado) {
-                prestarDeHermanoIzquierdo(nodo, indiceHijo);
-            }
-            else if (indiceHijo != nodo.getHijos().size() - 1 && nodo.obtenerHijo(indiceHijo + 1).numeroClaves() >= grado) {
-                prestarDeHermanoDerecho(nodo, indiceHijo);
-            }
-            else {
-                if (indiceHijo != nodo.getHijos().size() - 1) {
-                    fusionarHijos(nodo, indiceHijo);
-                }
-                else {
-                    fusionarHijos(nodo, indiceHijo - 1);
-                }
-            }
-        }
-        private void prestarDeHermanoIzquierdo(NodoArbolB<T> nodo, int indiceHijo) {
-            NodoArbolB<T> hijo = nodo.obtenerHijo(indiceHijo);
-            NodoArbolB<T> hermanoIzquierdo = nodo.obtenerHijo(indiceHijo - 1);
-            T clavePadre = nodo.obtenerClave(indiceHijo - 1);
-            hijo.insertarClave(clavePadre);
-            nodo.claves.set(indiceHijo - 1, hermanoIzquierdo.obtenerClave(hermanoIzquierdo.numeroClaves() - 1));
-            hermanoIzquierdo.removerClave(hermanoIzquierdo.numeroClaves() - 1);
-            if (!hermanoIzquierdo.esHoja()) {
-                hijo.insertarHijo(hermanoIzquierdo.obtenerHijo(hermanoIzquierdo.getHijos().size() - 1), 0);
-                hermanoIzquierdo.removerHijo(hermanoIzquierdo.getHijos().size() - 1);
-            }
-        }
-        private void prestarDeHermanoDerecho(NodoArbolB<T> nodo, int indiceHijo) {
-            NodoArbolB<T> hijo = nodo.obtenerHijo(indiceHijo);
-            NodoArbolB<T> hermanoDerecho = nodo.obtenerHijo(indiceHijo + 1);
-            T clavePadre = nodo.obtenerClave(indiceHijo);
-            hijo.insertarClave(clavePadre);
-            nodo.claves.set(indiceHijo, hermanoDerecho.obtenerClave(0));
-            hermanoDerecho.removerClave(0);
-            if (!hermanoDerecho.esHoja()) {
-                hijo.insertarHijo(hermanoDerecho.obtenerHijo(0), hijo.numeroClaves());
-                hermanoDerecho.removerHijo(0);
-            }
-        }
-        private void fusionarHijos(NodoArbolB<T> nodo, int indiceHijo) {
-            NodoArbolB<T> hijo = nodo.obtenerHijo(indiceHijo);
-            NodoArbolB<T> hermano = nodo.obtenerHijo(indiceHijo + 1);
-            T clavePadre = nodo.obtenerClave(indiceHijo);
-            hijo.insertarClave(clavePadre);
-            for (int i = 0; i < hermano.numeroClaves(); i++) {
-                hijo.insertarClave(hermano.obtenerClave(i));
-            }
-            if (!hermano.esHoja()) {
-                for (int i = 0; i <= hermano.numeroClaves(); i++) { 
-                    hijo.insertarHijo(hermano.obtenerHijo(i), hijo.numeroClaves());
-                }
-            }
-            nodo.removerClave(indiceHijo);
-            nodo.removerHijo(indiceHijo + 1);
-        }
-        private T obtenerPredecesor(NodoArbolB<T> nodo) {
-            while (!nodo.esHoja()) {
-                nodo = nodo.obtenerHijo(nodo.numeroClaves()); 
-            }
-            return nodo.obtenerClave(nodo.numeroClaves() - 1);
-        }
-        private T obtenerSucesor(NodoArbolB<T> nodo) {
-            while (!nodo.esHoja()) {
-                nodo = nodo.obtenerHijo(0);
-            }
-            return nodo.obtenerClave(0);
-        }
-        public List<String> getRepresentacionCompleta() {
-            List<String> representacion = new ArrayList<>();
-            if (raiz == null) {
-                representacion.add("El árbol B está vacío.");
-                return representacion;
-            }
-            obtenerRepresentacionRec(raiz, representacion, 0);
-            return representacion;
-        }
-        private void obtenerRepresentacionRec(NodoArbolB<T> nodo, List<String> representacion, int nivel) {
-            if (nodo != null) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < nivel; i++) sb.append("  ");
-                sb.append("- ").append(nodo.getRepresentacionGrafica());
-                representacion.add(sb.toString());
-                if (!nodo.esHoja()) {
-                    for (int i = 0; i <= nodo.numeroClaves(); i++) {
-                        obtenerRepresentacionRec(nodo.obtenerHijo(i), representacion, nivel + 1);
-                    }
-                }
-            }
-        }
-        public String getUltimaOperacionExplicacion() {
-            return ultimaOperacionExplicacion;
         }
     }
+    // Corregir underflow 
+    private void fixUnderflow(NodeB<E> parent, int childIndex) {
+        NodeB<E> child = parent.childs.get(childIndex);
+        
+   
+        if (childIndex > 0 && 
+            parent.childs.get(childIndex - 1).count > (orden - 1) / 2) {
+            redistributeFromLeft(parent, childIndex);
+        }
+       
+        else if (childIndex < parent.count && 
+                 parent.childs.get(childIndex + 1).count > (orden - 1) / 2) {
+            redistributeFromRight(parent, childIndex);
+        }
+        // Fusionar con hermano izquierdo
+        else if (childIndex > 0) {
+            mergeWithLeft(parent, childIndex);
+        }
+        // Fusionar con hermano derecho
+        else if (childIndex < parent.count) {
+            mergeWithRight(parent, childIndex);
+        }
+    }
+    
+    private void redistributeFromLeft(NodeB<E> parent, int childIndex) {
+        NodeB<E> child = parent.childs.get(childIndex);
+        NodeB<E> leftSibling = parent.childs.get(childIndex - 1);
+        
+        for (int i = child.count; i > 0; i--) {
+            child.keys.set(i, child.keys.get(i - 1));
+            child.childs.set(i + 1, child.childs.get(i));
+        }
+        child.childs.set(1, child.childs.get(0));
+        
+        child.keys.set(0, parent.keys.get(childIndex - 1));
+        child.childs.set(0, leftSibling.childs.get(leftSibling.count));
+        child.count++;
+       
+        parent.keys.set(childIndex - 1, leftSibling.keys.get(leftSibling.count - 1));
+        leftSibling.keys.set(leftSibling.count - 1, null);
+        leftSibling.childs.set(leftSibling.count, null);
+        leftSibling.count--;
+    }
+    
+    private void redistributeFromRight(NodeB<E> parent, int childIndex) {
+        NodeB<E> child = parent.childs.get(childIndex);
+        NodeB<E> rightSibling = parent.childs.get(childIndex + 1);
+      
+        child.keys.set(child.count, parent.keys.get(childIndex));
+        child.childs.set(child.count + 1, rightSibling.childs.get(0));
+        child.count++;
+        
+        parent.keys.set(childIndex, rightSibling.keys.get(0));
+ 
+        for (int i = 0; i < rightSibling.count - 1; i++) {
+            rightSibling.keys.set(i, rightSibling.keys.get(i + 1));
+            rightSibling.childs.set(i, rightSibling.childs.get(i + 1));
+        }
+        rightSibling.childs.set(rightSibling.count - 1, rightSibling.childs.get(rightSibling.count));
+        rightSibling.keys.set(rightSibling.count - 1, null);
+        rightSibling.childs.set(rightSibling.count, null);
+        rightSibling.count--;
+    }
+    
+    private void mergeWithLeft(NodeB<E> parent, int childIndex) {
+        NodeB<E> child = parent.childs.get(childIndex);
+        NodeB<E> leftSibling = parent.childs.get(childIndex - 1);
+        
+        // clave del padre al hermano izquierdo
+        leftSibling.keys.set(leftSibling.count, parent.keys.get(childIndex - 1));
+        leftSibling.count++;
+        
+        // Mover  al hermano izquierdo
+        for (int i = 0; i < child.count; i++) {
+            leftSibling.keys.set(leftSibling.count, child.keys.get(i));
+            leftSibling.childs.set(leftSibling.count, child.childs.get(i));
+            leftSibling.count++;
+        }
+        leftSibling.childs.set(leftSibling.count, child.childs.get(child.count));
+        
+        removeFromParent(parent, childIndex - 1);
+    }
+       
+    private void mergeWithRight(NodeB<E> parent, int childIndice) {
+    	NodeB<E> child = parent.childs.get(childIndice);
+        NodeB<E> rightSibling = parent.childs.get(childIndice + 1);
+        
+       
+        child.keys.set(child.count, parent.keys.get(childIndice));
+        child.count++;
+        //  del hermano derecho al hijo
+        for (int i = 0; i < rightSibling.count; i++) {
+            child.keys.set(child.count, rightSibling.keys.get(i));
+            child.childs.set(child.count, rightSibling.childs.get(i));
+            child.count++;
+        }
+        child.childs.set(child.count, rightSibling.childs.get(rightSibling.count));
+        
+        removeFromParent(parent, childIndice);
+    }
+    
+    private void mergeChildren(NodeB<E> parent, int pos) {
+    	NodeB<E> leftChild = parent.childs.get(pos);
+        NodeB<E> rightChild = parent.childs.get(pos + 1);
+        
+        //  padre al hijo izquierdo
+        leftChild.keys.set(leftChild.count, parent.keys.get(pos));
+        leftChild.count++;
+        
+        // claves e hijos del hijo derecho al izquierdo
+        for (int i = 0; i < rightChild.count; i++) {
+            leftChild.keys.set(leftChild.count, rightChild.keys.get(i));
+            leftChild.childs.set(leftChild.count, rightChild.childs.get(i));
+            leftChild.count++;
+        }
+        leftChild.childs.set(leftChild.count, rightChild.childs.get(rightChild.count));
+        
+        removeFromParent(parent, pos);
+    }
+    
+    private void removeFromParent(NodeB<E> parent, int pos) {
+    	for (int i = pos; i < parent.count - 1; i++) {
+            parent.keys.set(i, parent.keys.get(i + 1));
+            parent.childs.set(i + 1, parent.childs.get(i + 2));
+        }
+        parent.keys.set(parent.count - 1, null);
+        parent.childs.set(parent.count, null);
+        parent.count--;
+    }
+    
+    private boolean isLeaf(NodeB<E> node) {
+        return node.childs.get(0) == null;
+    }
+    
+    private boolean EnoughKeys(NodeB<E> node) {
+        return node != null && node.count > (orden - 1) / 2;
+    }
+
+    private void removeFromLeaf(NodeB<E> node, int pos) {
+        for (int i = pos; i < node.count - 1; i++) {
+            node.keys.set(i, node.keys.get(i + 1));
+        }
+        node.keys.set(node.count - 1, null);
+        node.count--;
+    }
+
+    private E getSuccessor(NodeB<E> node) {
+        while (!isLeaf(node)) {
+            node = node.childs.get(0);
+        }
+        return node.keys.get(0);
+    }
+
+    private E getPredecessor(NodeB<E> node) {
+        while (!isLeaf(node)) {
+            node = node.childs.get(node.count);
+        }
+        return node.keys.get(node.count - 1);
+    }
+    
+    public NodeB<E> getRoot() {
+        return this.root;
+    }
+    public List<String> getRepresentacionCompleta() {
+    List<String> representacion = new ArrayList<>();
+    if (isEmpty()) {
+        representacion.add("BTree vacío");
+    } else {
+        getRepresentacionRec(this.root, representacion, 0);
+    }
+    return representacion;
+}
+
+private void getRepresentacionRec(NodeB<E> nodo, List<String> rep, int nivel) {
+    if (nodo != null) {
+        String indent = "  ".repeat(nivel);
+        rep.add(indent + "Nivel " + nivel + ": " + nodo.toString());
+        
+        for (int i = 0; i <= nodo.count; i++) {
+            if (nodo.childs.get(i) != null) {
+                getRepresentacionRec(nodo.childs.get(i), rep, nivel + 1);
+            }
+        }
+    }
+}
+
+private String ultimaOperacionExplicacion = "No se han realizado operaciones aún.";
+
+public String getUltimaOperacionExplicacion() {
+    return ultimaOperacionExplicacion;
+}
+}
+
+
     private ArbolBinario<Integer> simuladorArbolBinario = new ArbolBinario<>();
     private final AVL<Integer> arbol = new AVL<>();
     private SplayTree<Integer> simuladorSplayTree = new SplayTree<>();
-    private ArbolB<Integer> simuladorArbolB = new ArbolB<>(3);
+    private BTree<Integer> btree = new BTree<>(3);
     
     @GetMapping("/api/estructuras/hola")
     public ResponseEntity<String> holaEstructuras() {
@@ -1195,25 +1422,42 @@ public class ExceptionItemNoFound extends Exception {
     public ResponseEntity<String> obtenerExplicacionSplayTree() {
         return ResponseEntity.ok(simuladorSplayTree.getUltimaOperacionExplicacion());
     }
-    @PostMapping("/api/arbol-b/insertar")
-    public ResponseEntity<String> insertarEnArbolB(@RequestBody Integer clave) {
-        if (clave == null) return ResponseEntity.badRequest().body("Clave nula.");
-        simuladorArbolB.insertar(clave);
-        return ResponseEntity.ok(simuladorArbolB.getUltimaOperacionExplicacion());
+       @PostMapping("/api/arbol-b/insertar")
+    public ResponseEntity<Map<String, Object>> insertarb(@RequestParam int valor) {
+        btree.insert(valor);
+        return ResponseEntity.ok(convertirArbol(btree.getRoot()));
     }
-    @DeleteMapping("/api/arbol-b/eliminar")
-    public ResponseEntity<String> eliminarDeArbolB(@RequestBody Integer clave) {
-        if (clave == null) return ResponseEntity.badRequest().body("Clave nula.");
-        simuladorArbolB.eliminar(clave);
-        return ResponseEntity.ok(simuladorArbolB.getUltimaOperacionExplicacion());
+    
+    @DeleteMapping("/api/arbol-b/eliminar") 
+    public ResponseEntity<Map<String, Object>> eliminarb(@RequestParam int valor) {
+        btree.remove(valor);
+        return ResponseEntity.ok(convertirArbol(btree.getRoot()));
     }
+    
     @GetMapping("/api/arbol-b/mostrar")
-    public ResponseEntity<List<String>> mostrarArbolB() {
-        return ResponseEntity.ok(simuladorArbolB.getRepresentacionCompleta());
+    public ResponseEntity<List<String>> mostrarArbolBTree() {
+        return ResponseEntity.ok(btree.getRepresentacionCompleta());
     }
+    
     @GetMapping("/api/arbol-b/explicacion")
-    public ResponseEntity<String> obtenerExplicacionArbolB() {
-        return ResponseEntity.ok(simuladorArbolB.getUltimaOperacionExplicacion());
+    public ResponseEntity<String> obtenerExplicacionArbolBTree() {
+        return ResponseEntity.ok(btree.getUltimaOperacionExplicacion());
+    }
+    
+    private Map<String, Object> convertirArbol(NodeB<Integer> nodo) {
+        if (nodo == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", System.identityHashCode(nodo));
+        map.put("keys", nodo.keys.subList(0, nodo.count));
+        
+        List<Map<String, Object>> children = new ArrayList<>();
+        for (int i = 0; i <= nodo.count; i++) {
+            children.add(convertirArbol(nodo.childs.get(i)));
+        }
+        map.put("children", children);
+        
+        return map;
     }
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
